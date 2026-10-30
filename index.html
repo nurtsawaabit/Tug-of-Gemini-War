@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tug of War: Gemini for Educators Duel</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace'],
+          },
+          colors: {
+            gemini: {
+              blue: '#1a73e8',
+              purple: '#7c3aed',
+              spark: '#d946ef',
+              dark: '#0f172a',
+              card: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom animations & glow */
+    .glow-blue {
+      box-shadow: 0 0 25px -3px rgba(59, 130, 246, 0.45);
+    }
+    .glow-amber {
+      box-shadow: 0 0 25px -3px rgba(245, 158, 11, 0.45);
+    }
+    .gemini-gradient-text {
+      background: linear-gradient(135deg, #60a5fa 0%, #c084fc 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .rope-pattern {
+      background: repeating-linear-gradient(
+        45deg,
+        #d97706,
+        #d97706 12px,
+        #b45309 12px,
+        #b45309 24px
+      );
+    }
+    .rope-tension {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-badge {
+      animation: pulse-subtle 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
+
+  <!-- TOP HEADER & CONTROLS -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg">
+          <i class="fa-solid fa-brain text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+            <span class="gemini-gradient-text font-black tracking-wide">TUG OF WAR</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300 border border-purple-700">Educator Duel</span>
+          </h1>
+          <p class="text-xs text-slate-400">Gemini for Educators</p>
+        </div>
+      </div>
+
+      <!-- Center Status / Rounds -->
+      <div class="flex items-center space-x-4 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ronde: <span id="roundCounter" class="text-white text-sm font-bold">1/10</span></span>
+        <div class="h-4 w-px bg-slate-600"></div>
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target: <span class="text-emerald-400 text-sm font-bold">±5 Tarikan / 10 Ronde</span></span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2">
+        <button id="modeToggleBtn" class="text-xs px-3 py-1.5 rounded-lg border border-purple-600/50 bg-purple-950/40 text-purple-200 hover:bg-purple-900/50 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-bolt"></i> Mode: <span id="modeNameDisplay" class="font-bold">Fast Quiz Duel</span>
+        </button>
+        <button id="soundToggleBtn" class="text-xs px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition">
+          <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+        </button>
+        <button id="resetGameBtn" class="text-xs px-3 py-1.5 rounded-lg bg-rose-600/20 border border-rose-500/50 text-rose-300 hover:bg-rose-600 hover:text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate-right"></i> Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN PLAYFIELD -->
+  <main class="max-w-7xl mx-auto w-full px-4 py-4 flex-1 flex flex-col justify-between">
+    
+    <!-- TUG OF WAR ROPE & TRACK STAGE -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-4 shadow-2xl relative overflow-hidden">
+      <!-- Glow indicators behind sides -->
+      <div class="absolute -left-20 -top-20 w-48 h-48 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -right-20 -top-20 w-48 h-48 bg-amber-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Rope Stage Header -->
+      <div class="flex justify-between items-center mb-2 px-2">
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+          <span class="text-sm font-bold text-blue-400">TIM BIRU (Prompt Craft)</span>
+          <span id="p1ScoreBadge" class="text-xs px-2 py-0.5 rounded bg-blue-950 text-blue-300 font-mono font-bold border border-blue-800">+0 pts</span>
+        </div>
+        <div class="text-center">
+          <span id="centerDistanceText" class="text-xs font-mono font-semibold px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+            Tali Seimbang (0)
+          </span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span id="p2ScoreBadge" class="text-xs px-2 py-0.5 rounded bg-amber-950 text-amber-300 font-mono font-bold border border-amber-800">+0 pts</span>
+          <span class="text-sm font-bold text-amber-400">TIM JINGGA (Zero-Shot Slayer)</span>
+          <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+        </div>
+      </div>
+
+      <!-- Visual Tug-of-war Track -->
+      <div class="relative py-7 px-4">
+        <!-- Scale ticks (-5 to +5) -->
+        <div class="flex justify-between text-[11px] font-mono text-slate-500 mb-2 px-1">
+          <span class="text-blue-400 font-bold">◄ MENANG (-5)</span>
+          <span>-4</span>
+          <span>-3</span>
+          <span>-2</span>
+          <span>-1</span>
+          <span class="text-white font-bold">| NETRAL (0) |</span>
+          <span>+1</span>
+          <span>+2</span>
+          <span>+3</span>
+          <span>+4</span>
+          <span class="text-amber-400 font-bold">(+5) MENANG ►</span>
+        </div>
+
+        <!-- The Rope Bar Track -->
+        <div class="relative h-6 w-full bg-slate-950 rounded-full border border-slate-700 flex items-center px-1 shadow-inner">
+          <!-- Baseline Center Divider -->
+          <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-600 -translate-x-1/2 z-10"></div>
+          
+          <!-- The Physical Rope Texture -->
+          <div class="h-3 w-full rope-pattern rounded-full opacity-80"></div>
+
+          <!-- The Marker Ribbon that slides between left 0% and 100% -->
+          <div id="ropeMarker" class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 rope-tension z-20 flex flex-col items-center">
+            <!-- Ribbon Flag -->
+            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center justify-center shadow-lg border-2 border-white animate-badge">
+              <i class="fa-solid fa-flag text-xs"></i>
+            </div>
+            <!-- Knot Indicator -->
+            <div class="w-2.5 h-6 bg-rose-500 rounded-sm -mt-1 shadow-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pedagogical Prompting Hint / Tip of the Round -->
+      <div class="mt-1 bg-slate-950/60 border border-slate-800/80 rounded-xl px-4 py-2 flex items-center justify-between text-xs text-slate-300">
+        <div class="flex items-center gap-2 truncate">
+          <span class="px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 text-[10px] font-bold uppercase tracking-wider">Prinsip AI</span>
+          <span id="promptingTipDisplay" class="truncate font-medium">Few-shot prompting memberikan 2-3 contoh teladan agar model menghasilkan format seragam & konsisten.</span>
+        </div>
+        <span class="text-slate-500 text-[11px] shrink-0 font-mono">Keyboard: <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">A/S/D</kbd> vs <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">J/K/L</kbd></span>
+      </div>
+    </div>
+
+    <!-- CHALLENGE CARD (SCENARIO) -->
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 mb-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-xs uppercase font-bold tracking-widest text-pink-400">Tantangan Pembelajaran</span>
+          <span id="challengeCategory" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">Kategori: HOTS vs LOTS</span>
+        </div>
+        <span class="text-xs text-slate-400 font-mono">Tarik tambang tercepat dengan memilih optimasi prompt terbaik!</span>
+      </div>
+
+      <div class="space-y-1">
+        <h2 id="challengeScenario" class="text-lg md:text-xl font-bold text-slate-100">
+          "Buatkan soal ujian biologi kelas 10 tentang fotosintesis."
+        </h2>
+        <p id="challengeGoal" class="text-sm text-slate-400">
+          <strong class="text-purple-400">Tujuan Target Guru:</strong> Mengubah prompt di atas agar Gemini menghasilkan soal HOTS analisis studi kasus eksperimen Ingenhousz lengkap dengan rubrik analitik 4 kriteria.
+        </p>
+      </div>
+    </div>
+
+    <!-- 2-PLAYER INTERACTION ARENA (SPLIT SCREEN) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+      
+      <!-- PLAYER 1 (BLUE) -->
+      <div class="bg-slate-900/90 border-2 border-blue-500/40 rounded-2xl p-4 flex flex-col justify-between glow-blue relative">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-blue-900/40">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow">
+              P1
+            </div>
+            <div>
+              <h3 class="font-bold text-blue-400 text-sm">Tim Biru (Left Side)</h3>
+              <p class="text-[11px] text-slate-400">Kunci Cepat: <kbd class="px-1 bg-slate-800 rounded text-blue-300 font-mono">1</kbd>, <kbd class="px-1 bg-slate-800 rounded text-blue-300 font-mono">2</kbd>, <kbd class="px-1 bg-slate-800 rounded text-blue-300 font-mono">3</kbd></p>
+            </div>
+          </div>
+          <div id="p1Feedback" class="text-xs font-bold font-mono px-2 py-1 rounded bg-blue-950/80 text-blue-300 border border-blue-800">
+            Siap Menarik
+          </div>
+        </div>
+
+        <!-- Options Container P1 -->
+        <div id="p1OptionsContainer" class="space-y-2.5 flex-1 flex flex-col justify-center my-2">
+          <!-- Dynamically populated buttons -->
+        </div>
+
+        <div class="text-[11px] text-blue-300/80 flex items-center justify-between pt-2 border-t border-blue-950">
+          <span>Strategi: Pilih teknik instruksi paling presisi</span>
+          <span class="font-mono">P1 Pull: -1 step</span>
+        </div>
+      </div>
+
+      <!-- PLAYER 2 (AMBER/ORANGE) -->
+      <div class="bg-slate-900/90 border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col justify-between glow-amber relative">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-amber-900/40">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center font-bold text-white shadow">
+              P2
+            </div>
+            <div>
+              <h3 class="font-bold text-amber-400 text-sm">Tim Jingga (Right Side)</h3>
+              <p class="text-[11px] text-slate-400">Kunci Cepat: <kbd class="px-1 bg-slate-800 rounded text-amber-300 font-mono">8</kbd>, <kbd class="px-1 bg-slate-800 rounded text-amber-300 font-mono">9</kbd>, <kbd class="px-1 bg-slate-800 rounded text-amber-300 font-mono">0</kbd></p>
+            </div>
+          </div>
+          <div id="p2Feedback" class="text-xs font-bold font-mono px-2 py-1 rounded bg-amber-950/80 text-amber-300 border border-amber-800">
+            Siap Menarik
+          </div>
+        </div>
+
+        <!-- Options Container P2 -->
+        <div id="p2OptionsContainer" class="space-y-2.5 flex-1 flex flex-col justify-center my-2">
+          <!-- Dynamically populated buttons -->
+        </div>
+
+        <div class="text-[11px] text-amber-300/80 flex items-center justify-between pt-2 border-t border-amber-950">
+          <span>Strategi: Deteksi batas dan parameter model</span>
+          <span class="font-mono">P2 Pull: +1 step</span>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: VICTORY ANNOUNCEMENT & PEDAGOGICAL DEBRIEF -->
+  <div id="victoryModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 max-w-lg w-full rounded-2xl p-6 text-center shadow-2xl relative">
+      <div id="winnerCrown" class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl shadow-xl">
+        🏆
+      </div>
+      <h2 id="winnerTitle" class="text-2xl font-black mb-1">TIM BIRU JUARA TARIK TAMBANG!</h2>
+      <p id="winnerSubtitle" class="text-sm text-slate-400 mb-5">Kecepatan & ketepatan prompt engineering berhasil menarik tali ke garis akhir.</p>
+
+      <!-- Pedagogical Debrief Card -->
+      <div class="bg-slate-950 border border-purple-900/50 rounded-xl p-4 text-left mb-5">
+        <div class="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider mb-2">
+          <i class="fa-solid fa-graduation-cap"></i> Refleksi Gemini for Educators:
+        </div>
+        <p id="winnerTakeaway" class="text-xs text-slate-300 leading-relaxed">
+          Dalam kelas nyata, menambahkan <strong>Few-Shot Examples</strong> dan batasan rubrik yang jelas (*Persona + Delimiters*) mengurangi revisi berulang hingga 70% dibandingkan perintah *zero-shot* yang terlalu umum.
+        </p>
+      </div>
+
+      <div class="flex gap-3 justify-center">
+        <button id="modalPlayAgainBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold text-sm shadow-lg hover:opacity-90 transition">
+          <i class="fa-solid fa-play mr-2"></i> Mainkan Ronde Baru
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: OPTIONAL LIVE GEMINI API SETTINGS -->
+  <div id="apiConfigModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 max-w-md w-full rounded-2xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-key text-purple-400"></i> Mode Arena API Gemini (Opsional)
+        </h3>
+        <button id="closeApiModalBtn" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">
+        Secara default, gim menggunakan kurikulum internal kuis cepat (sangat ideal untuk ice-breaker tanpa koneksi API). Anda juga dapat memasukkan Gemini API Key untuk mode evaluasi live.
+      </p>
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Gemini API Key</label>
+        <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 font-mono">
+        <span class="text-[10px] text-slate-500 mt-1 block">Kunci tersimpan aman hanya di memori browser lokal (tidak dikirim ke server luar).</span>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button id="saveApiKeyBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition">
+          Simpan & Aktifkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // --- AUDIO SYNTHESIZER (Web Audio API - No external assets) ---
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+      playTug() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.16);
+      }
+      playCorrect() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.23);
+      }
+      playWrong() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.26);
+      }
+      playFanfare() {
+        if (this.muted) return;
+        this.init();
+        const notes = [440, 554, 659, 880];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.42);
+          }, idx * 120);
+        });
+      }
+    }
+
+    const sound = new SoundFX();
+
+    // --- CURRICULUM QUESTIONS: GEMINI FOR EDUCATORS ---
+    // Specifically crafted around Certified Educator competencies:
+    // 1. HOTS vs LOTS prompting
+    // 2. Few-shot example modeling
+    // 3. Delimiters (###, """, XML tags)
+    // 4. Hallucination guardrails & Grounding
+    // 5. Persona assignment & SMART differentiation
+    const CURRICULUM_ROUNDS = [
+      {
+        category: "1. Few-Shot Prompting: Pola Pasangan Teladan",
+        scenario: "Guru ingin Gemini menghasilkan rubrik asesmen analitik 4 skala yang selalu konsisten tabelnya tanpa kalimat pembuka yang bertele-tele.",
+        goal: "Manakah teknik instruksi paling efektif untuk memastikan konsistensi format sesuai standar Gemini Certified Educator?",
+        tip: "Few-shot memberikan template pasangan Input -> Output konkret sehingga model langsung meniru format tanpa preamble pembuka.",
+        options: [
+          {
+            text: "Berikan 1-2 contoh format tabel acuan di dalam prompt dengan penanda '### Contoh Masukan & Keluaran:'",
+            isCorrect: true,
+            reason: "Few-shot exemplar memastikan konsistensi format dan memangkas basa-basi intro AI."
+          },
+          {
+            text: "Tulis prompt: 'Tolong buatkan yang sangat rapi, jangan pakai basa-basi, lakukan sekarang juga.'",
+            isCorrect: false,
+            reason: "Kata sifat kualitatif 'sangat rapi' tidak terukur dan memicu variabilitas format output."
+          },
+          {
+            text: "Ulangi kalimat 'Jangan tulis kata halo' sebanyak lima kali berulang di akhir prompt.",
+            isCorrect: false,
+            reason: "Repetisi negatif rentan diabaikan oleh attention mechanism dibanding pembatasan format langsung."
+          }
+        ]
+      },
+      {
+        category: "2. Taksonomi Bloom: HOTS (C4-C6) vs LOTS (C1-C2)",
+        scenario: "Guru meminta soal fotosintesis kelas 10, namun Gemini selalu memberi soal LOTS hafalan (definisi klorofil & rumus kimia).",
+        goal: "Bagaimana cara menyuntikkan instruksi level kognitif tinggi (HOTS) yang tepat ke Gemini?",
+        tip: "Tentukan Kata Kerja Operasional Analisis/Evaluasi dan wajibkan stimulus studi kasus atau tabel anomali data.",
+        options: [
+          {
+            text: "Tambahkan stimulus: 'Sajikan narasi anomali laju gelembung tabung Ingenhousz dengan intensitas cahaya berbeda, minta siswa menganalisis variabel pengganggu.'",
+            isCorrect: true,
+            reason: "Memberikan data stimulus eksperimen secara langsung memaksa penalaran analisis kritis (C4-C5)."
+          },
+          {
+            text: "Cukup ketik: 'Buatkan soal yang super sulit sampai siswa berprestasi pun bingung.'",
+            isCorrect: false,
+            reason: "Instruksi tidak memiliki parameter taksonomi ilmiah yang dapat diinterpretasikan model."
+          },
+          {
+            text: "Minta Gemini menerjemahkan prompt hafalan tersebut ke dalam bahasa formal kuno.",
+            isCorrect: false,
+            reason: "Hanya mengubah stilistika bahasa tanpa menaikkan kedalaman kognitif asesmen."
+          }
+        ]
+      },
+      {
+        category: "3. Grounding & Anti-Halusinasi: Fakta Terverifikasi",
+        scenario: "Saat menyusun modul sejarah kebudayaan daerah, Gemini menghasilkan nama tokoh dan tanggal peristiwa yang diragukan kebenarannya.",
+        goal: "Strategi prompt manakah yang paling efektif mencegah halusinasi fakta lokal pada Gemini?",
+        tip: "Gunakan Grounding constraint: batasi model hanya mengekstrak fakta dari dokumen referensi yang dilampirkan.",
+        options: [
+          {
+            text: "Instruksikan: 'Jawab HANYA bersumber dari teks referensi di antara tag <dokumen>...</dokumen>. Jika informasi tidak ditemukan di sana, tulis: Tidak Tertera.'",
+            isCorrect: true,
+            reason: "Teknik grounded extraction dengan boundary tertutup memangkas resiko halusinasi fakta lokal."
+          },
+          {
+            text: "Tulis prompt lanjutan: 'Kamu yakin ini benar? Coba tebak lagi alternatif tokoh sejarah lainnya.'",
+            isCorrect: false,
+            reason: "Menyuruh model 'menebak' justru melipatgandakan kecenderungan fabrikasi halusinasi."
+          },
+          {
+            text: "Tingkatkan nilai Temperature menjadi 1.0 (kreativitas maksimal).",
+            isCorrect: false,
+            reason: "Temperature tinggi memperluas sampling acak dan memperbesar resiko halusinasi faktual."
+          }
+        ]
+      },
+      {
+        category: "4. Persona & Custom Gems: Tutor Sokrates",
+        scenario: "Guru mendesain 'Custom Gem' agar siswa tidak sekadar menyalin tugas pekerjaan rumah Matematika dari AI.",
+        goal: "System instructions apa yang paling tepat untuk mendidik kemandirian bernalar siswa?",
+        tip: "Tentukan batasan perilaku persona agen: ajukan pertanyaan pemandu bertahap tanpa pernah memberikan solusi akhir.",
+        options: [
+          {
+            text: "Persona: 'Tutor Sokrates Sabar. Jangan pernah memberikan rumus jadi atau jawaban akhir. Ajukan 1 pertanyaan pemandu per langkah untuk menggali logika siswa.'",
+            isCorrect: true,
+            reason: "Scaffolding sokratik melatih metakognisi siswa ketimbang ketergantungan instan pada AI."
+          },
+          {
+            text: "Persona: 'Mesin Solusi Cepat. Tuliskan jawaban akhir di baris pertama lalu buat pembahasannya dalam 10 paragraf.'",
+            isCorrect: false,
+            reason: "Memicu jalan pintas pengerjaan tugas tanpa proses penalaran mandiri."
+          },
+          {
+            text: "Persona: 'Guru Galak. Jika siswa salah jawab pada percobaan pertama, langsung tutup sesi percakapan.'",
+            isCorrect: false,
+            reason: "Menghambat lingkungan belajar psikologis yang aman dan reflektif bagi peserta didik."
+          }
+        ]
+      },
+      {
+        category: "5. Structured Data Output: Markdown & Spreadsheet Ready",
+        scenario: "Guru membutuhkan daftar 5 proyek STEAM yang bisa langsung di-copy paste ke Google Sheets atau Google Docs tanpa berantakan.",
+        goal: "Instruksi format keluaran apa yang menjamin tabel langsung terpetakan ke kolom spreadsheet?",
+        tip: "Spesifikasikan output berupa 'Markdown Table' lengkap dengan nama header kolom yang baku.",
+        options: [
+          {
+            text: "Tentukan: 'Hasilkan output akhir HANYA dalam bentuk Markdown Table dengan kolom: [No | Nama Proyek | Disiplin STEAM | Durasi | Kriteria Asesmen].'",
+            isCorrect: true,
+            reason: "Markdown table otomatis dapat disalin dan di-paste ke baris/kolom Google Sheets secara presisi."
+          },
+          {
+            text: "Tentukan: 'Ketik dalam bentuk narasi cerita panjang, pisahkan dengan titik dua di setiap paragraf.'",
+            isCorrect: false,
+            reason: "Narasi bebas tidak dapat di-parse otomatis ke dalam grid spreadsheet."
+          },
+          {
+            text: "Tulis: 'Kirimkan tautan download file excel ke email dinas saya.'",
+            isCorrect: false,
+            reason: "LLM dalam prompt dasar tidak memiliki kapabilitas mengirim attachment email personal secara langsung."
+          }
+        ]
+      },
+      {
+        category: "6. Negative Guardrails & Anti-Cheating: Batasan Perilaku",
+        scenario: "Guru ingin Gemini mengevaluasi draf esai siswa, namun Gemini sering kali menuliskan ulang seluruh esai sehingga siswa tidak belajar merevisi.",
+        goal: "Bagaimana cara menetapkan batasan negatif (negative constraint) yang efektif?",
+        tip: "Gunakan batasan larangan eksplisit dan tentukan tindakan pengganti (constructive feedback).",
+        options: [
+          {
+            text: "Cantumkan batasan: 'DILARANG menulis ulang paragraf siswa. Berikan evaluasi berupa 3 poin kekuatan dan 2 pertanyaan pemantik perbaikan struktur argumen.'",
+            isCorrect: true,
+            reason: "Kombinasi larangan tegas dengan instruksi tindakan alternatif menjaga integritas proses belajar siswa."
+          },
+          {
+            text: "Tulis: 'Tolong jangan curang ya Gemini, jadilah asisten guru yang jujur.'",
+            isCorrect: false,
+            reason: "Bahasa antropomorfik emosional tidak memberikan guardrail instruksional yang jelas pada algoritma AI."
+          },
+          {
+            text: "Biarkan Gemini menulis ulang esai, lalu guru meminta siswa mengetik ulang kata demi kata di kertas.",
+            isCorrect: false,
+            reason: "Tidak menyelesaikan akar masalah pedagogis orisinalitas karya tulis peserta didik."
+          }
+        ]
+      },
+      {
+        category: "7. Multimodal Prompting: Visual & Graphic Analysis",
+        scenario: "Guru mengunggah foto diagram sel tumbuhan dan ingin Gemini membuatkan rubrik diagnostik miskonsepsi organel sel.",
+        goal: "Bagaimana teknik prompt multimodal yang menghasilkan analisis akurat dari citra visual yang diunggah?",
+        tip: "Arahkan model untuk mengamati elemen visual spesifik (koordinat, label panah, warna) sebelum menarik kesimpulan asesmen.",
+        options: [
+          {
+            text: "Prompt: 'Perhatikan label organel A, B, dan C pada gambar. Identifikasi organel mana yang sering tertukar fungsinya oleh siswa, lalu buat tabel miskonsepsinya.'",
+            isCorrect: true,
+            reason: "Mengarahkan perhatian multimodal ke penanda label spesifik meminimalkan kesalahan identifikasi spasial visual."
+          },
+          {
+            text: "Prompt: 'Apa isi gambar ini secara umum?'",
+            isCorrect: false,
+            reason: "Pertanyaan generik menghasilkan deskripsi permukaan tanpa nilai diagnostik pembelajaran."
+          },
+          {
+            text: "Prompt: 'Abaikan gambar sel tersebut, buatkan saja dongeng tentang mikroskop.'",
+            isCorrect: false,
+            reason: "Tidak memanfaatkan modalitas gambar yang diunggah untuk tujuan asesmen."
+          }
+        ]
+      },
+      {
+        category: "8. Chain of Thought (CoT): Penalaran Langkah demi Langkah",
+        scenario: "Gemini sering salah menjumlahkan skor bobot pada rubrik analitik matriks kompleks yang menggabungkan 4 kriteria dengan pembobotan persentase.",
+        goal: "Teknik rekayasa prompt manakah yang terbukti meningkatkan akurasi komputasi logika pada LLM?",
+        tip: "Instruksikan model untuk bernalar secara runtut (step-by-step) sebelum menyimpulkan total kalkulasi.",
+        options: [
+          {
+            text: "Gunakan pemicu CoT: 'Mari selesaikan langkah demi langkah (step-by-step). Hitung bobot tiap indikator satu per satu, verifikasi total 100%, lalu tampilkan hasil akhir.'",
+            isCorrect: true,
+            reason: "Chain of Thought memaksa model membagi penalaran ke dalam token langkah sekuensial yang jauh lebih akurat."
+          },
+          {
+            text: "Ketik: 'Harus benar 100%, kalau salah berarti sistem kalkulatormu rusak.'",
+            isCorrect: false,
+            reason: "Tidak memandu urutan eksekusi logika rantai pemikiran (chain of thought) model."
+          },
+          {
+            text: "Hapus semua angka pembobotan dari rubrik agar Gemini tidak perlu berhitung.",
+            isCorrect: false,
+            reason: "Menghilangkan komponen esensial penilaian asesmen analitik guru."
+          }
+        ]
+      },
+      {
+        category: "9. Delimiters & Context Partitioning: Pemisah Konteks",
+        scenario: "Guru menempelkan teks bacaan cerpen sepanjang 500 kata ke dalam prompt dan meminta Gemini membuatkan 3 pertanyaan inferensi.",
+        goal: "Mengapa disarankan menggunakan penanda delimiter (seperti tanda petik tiga \"\"\" atau ###) untuk memisahkan teks bacaan dan perintah?",
+        tip: "Delimiter mencegah 'prompt injection' atau kebingungan model dalam membedakan instruksi guru dengan isi bahan bacaan.",
+        options: [
+          {
+            text: "Membantu parser model membedakan secara tegas antara instruksi kerja instruksional dengan materi teks bacaan sumber.",
+            isCorrect: true,
+            reason: "Pemisah struktural (delimiters) mencegah instruksi guru tertelan atau tersamar di dalam teks bacaan siswa."
+          },
+          {
+            text: "Hanya untuk mempercantik estetika tampilan teks bagi guru saat membaca prompt di layar.",
+            isCorrect: false,
+            reason: "Tujuan utama delimiter adalah parsing tokenisasi struktural arsitektur model, bukan hiasan grafis."
+          },
+          {
+            text: "Agar konsumsi kuota kata Gemini menjadi 2 kali lebih cepat habis.",
+            isCorrect: false,
+            reason: "Delimiter tidak dimaksudkan untuk memboroskan kuota token pemrosesan konteks."
+          }
+        ]
+      },
+      {
+        category: "10. Responsible AI & Student Privacy: Etika Pemanfaatan",
+        scenario: "Guru ingin meminta Gemini menganalisis tren nilai ujian semester dan memberikan saran diferensiasi pembelajaran individual siswa.",
+        goal: "Praktik etis apakah yang WAJIB dipatuhi guru sebelum mengunggah data siswa ke platform AI publik?",
+        tip: "Prinsip Privasi Data Siswa: Anonymize data pribadi (PII) seperti NISN, nama lengkap, dan data sensitif lainnya.",
+        options: [
+          {
+            text: "Lakukan anonimisasi: Hapus seluruh Nama Lengkap, NISN, dan data pengenal pribadi (PII), ganti dengan label anonim seperti 'Siswa A, Siswa B'.",
+            isCorrect: true,
+            reason: "Kepatuhan privasi data siswa (PII Protection & Data Ethics) adalah pilar wajib bagi Gemini Certified Educator."
+          },
+          {
+            text: "Unggah seluruh identitas lengkap termasuk nomor HP orang tua agar rekomendasi AI lebih personal.",
+            isCorrect: false,
+            reason: "Pelanggaran serius terhadap privasi data peserta didik dan kode etik pendidik."
+          },
+          {
+            text: "Minta siswa sendiri yang mengunggah data rahasia keluarga mereka ke akun AI masing-masing.",
+            isCorrect: false,
+            reason: "Menyalahi regulasi perlindungan data anak di bawah umur pada ekosistem digital sekolah."
+          }
+        ]
+      }
+    ];
+
+    // --- GAME STATE ---
+    let currentRoundIndex = 0;
+    let ropePosition = 0; // -5 (P1 Win) to +5 (P2 Win). 0 is center.
+    let p1Score = 0;
+    let p2Score = 0;
+    let isRoundLocked = false;
+    let activeMode = 'quiz'; // 'quiz' or 'api'
+    let geminiApiKey = localStorage.getItem('gemini_icebreaker_key') || '';
+
+    // --- DOM REFERENCES ---
+    const ropeMarker = document.getElementById('ropeMarker');
+    const centerDistanceText = document.getElementById('centerDistanceText');
+    const roundCounter = document.getElementById('roundCounter');
+    const promptingTipDisplay = document.getElementById('promptingTipDisplay');
+    const challengeCategory = document.getElementById('challengeCategory');
+    const challengeScenario = document.getElementById('challengeScenario');
+    const challengeGoal = document.getElementById('challengeGoal');
+    const p1OptionsContainer = document.getElementById('p1OptionsContainer');
+    const p2OptionsContainer = document.getElementById('p2OptionsContainer');
+    const p1Feedback = document.getElementById('p1Feedback');
+    const p2Feedback = document.getElementById('p2Feedback');
+    const p1ScoreBadge = document.getElementById('p1ScoreBadge');
+    const p2ScoreBadge = document.getElementById('p2ScoreBadge');
+    const victoryModal = document.getElementById('victoryModal');
+    const winnerTitle = document.getElementById('winnerTitle');
+    const winnerSubtitle = document.getElementById('winnerSubtitle');
+    const winnerTakeaway = document.getElementById('winnerTakeaway');
+    const winnerCrown = document.getElementById('winnerCrown');
+    const modalPlayAgainBtn = document.getElementById('modalPlayAgainBtn');
+    const resetGameBtn = document.getElementById('resetGameBtn');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+    const modeNameDisplay = document.getElementById('modeNameDisplay');
+    const apiConfigModal = document.getElementById('apiConfigModal');
+    const closeApiModalBtn = document.getElementById('closeApiModalBtn');
+    const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+    const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+
+    // --- HELPER: SHUFFLE OPTIONS ---
+    function shuffleArray(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // --- UPDATE VISUAL ROPE POSITION ---
+    function updateRopeUI() {
+      // Map -5...+5 to percentage: -5 -> 10%, 0 -> 50%, +5 -> 90%
+      const percentage = 50 + (ropePosition * 8);
+      ropeMarker.style.left = `${percentage}%`;
+
+      if (ropePosition === 0) {
+        centerDistanceText.textContent = "Tali Seimbang (0)";
+        centerDistanceText.className = "text-xs font-mono font-semibold px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300";
+      } else if (ropePosition < 0) {
+        const pulls = Math.abs(ropePosition);
+        centerDistanceText.textContent = `◄ Tim Biru Memimpin (${pulls} langkah)`;
+        centerDistanceText.className = "text-xs font-mono font-bold px-3 py-1 rounded-full bg-blue-950 border border-blue-600 text-blue-300 shadow-sm";
+      } else {
+        centerDistanceText.textContent = `Tim Jingga Memimpin (${ropePosition} langkah) ►`;
+        centerDistanceText.className = "text-xs font-mono font-bold px-3 py-1 rounded-full bg-amber-950 border border-amber-600 text-amber-300 shadow-sm";
+      }
+
+      p1ScoreBadge.textContent = `${p1Score} pts`;
+      p2ScoreBadge.textContent = `${p2Score} pts`;
+
+      // Check Match Over condition
+      if (ropePosition <= -5) {
+        triggerVictory('TIM BIRU (Prompt Craft)', 'blue');
+      } else if (ropePosition >= 5) {
+        triggerVictory('TIM JINGGA (Zero-Shot Slayer)', 'amber');
+      }
+    }
+
+    // --- LOAD ROUND CONTENT ---
+    function loadRound(index) {
+      isRoundLocked = false;
+      const roundData = CURRICULUM_ROUNDS[index % CURRICULUM_ROUNDS.length];
+
+      roundCounter.textContent = `${(index % CURRICULUM_ROUNDS.length) + 1}/${CURRICULUM_ROUNDS.length}`;
+      challengeCategory.textContent = roundData.category;
+      challengeScenario.textContent = `"${roundData.scenario}"`;
+      challengeGoal.innerHTML = `<strong class="text-purple-400">Tujuan Target Guru:</strong> ${roundData.goal}`;
+      promptingTipDisplay.textContent = roundData.tip;
+
+      p1Feedback.textContent = "Pilih jawaban tercepat!";
+      p1Feedback.className = "text-xs font-mono px-2 py-1 rounded bg-blue-950/80 text-blue-300 border border-blue-800";
+      p2Feedback.textContent = "Pilih jawaban tercepat!";
+      p2Feedback.className = "text-xs font-mono px-2 py-1 rounded bg-amber-950/80 text-amber-300 border border-amber-800";
+
+      // Render P1 Options (Keys 1, 2, 3)
+      p1OptionsContainer.innerHTML = '';
+      const p1Shuffled = shuffleArray(roundData.options);
+      p1Shuffled.forEach((opt, idx) => {
+        const keyChar = (idx + 1).toString();
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-blue-500 hover:bg-blue-950/40 text-xs text-slate-200 transition flex items-start gap-2.5 active:scale-[0.98]";
+        btn.innerHTML = `
+          <span class="w-5 h-5 rounded-md bg-blue-900/60 border border-blue-700 text-blue-300 flex items-center justify-center font-mono font-bold text-[11px] shrink-0">${keyChar}</span>
+          <span class="leading-relaxed flex-1">${opt.text}</span>
+        `;
+        btn.onclick = () => handlePlayerAttempt(1, opt, btn);
+        btn.dataset.key = keyChar;
+        btn.dataset.correct = opt.isCorrect;
+        p1OptionsContainer.appendChild(btn);
+      });
+
+      // Render P2 Options (Keys 8, 9, 0)
+      p2OptionsContainer.innerHTML = '';
+      const p2Keys = ['8', '9', '0'];
+      const p2Shuffled = shuffleArray(roundData.options);
+      p2Shuffled.forEach((opt, idx) => {
+        const keyChar = p2Keys[idx];
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500 hover:bg-amber-950/40 text-xs text-slate-200 transition flex items-start gap-2.5 active:scale-[0.98]";
+        btn.innerHTML = `
+          <span class="w-5 h-5 rounded-md bg-amber-900/60 border border-amber-700 text-amber-300 flex items-center justify-center font-mono font-bold text-[11px] shrink-0">${keyChar}</span>
+          <span class="leading-relaxed flex-1">${opt.text}</span>
+        `;
+        btn.onclick = () => handlePlayerAttempt(2, opt, btn);
+        btn.dataset.key = keyChar;
+        btn.dataset.correct = opt.isCorrect;
+        p2OptionsContainer.appendChild(btn);
+      });
+    }
+
+    // --- HANDLE PLAYER ATTEMPT ---
+    function handlePlayerAttempt(playerNum, option, buttonElement) {
+      if (isRoundLocked) return;
+
+      if (option.isCorrect) {
+        // Player pulls the rope towards their side
+        isRoundLocked = true;
+        sound.playCorrect();
+        sound.playTug();
+
+        if (playerNum === 1) {
+          ropePosition = Math.max(-5, ropePosition - 1);
+          p1Score += 100;
+          p1Feedback.textContent = "TARIKAN BERHASIL! (+1)";
+          p1Feedback.className = "text-xs font-mono px-2 py-1 rounded bg-blue-600 text-white font-bold animate-pulse";
+          buttonElement.classList.add('border-emerald-500', 'bg-emerald-950/50');
+        } else {
+          ropePosition = Math.min(5, ropePosition + 1);
+          p2Score += 100;
+          p2Feedback.textContent = "TARIKAN BERHASIL! (+1)";
+          p2Feedback.className = "text-xs font-mono px-2 py-1 rounded bg-amber-600 text-white font-bold animate-pulse";
+          buttonElement.classList.add('border-emerald-500', 'bg-emerald-950/50');
+        }
+
+        updateRopeUI();
+
+        // Brief delay before progressing to next round
+        setTimeout(() => {
+          if (ropePosition > -5 && ropePosition < 5) {
+            currentRoundIndex++;
+            if (currentRoundIndex < CURRICULUM_ROUNDS.length) {
+              loadRound(currentRoundIndex);
+            } else {
+              // Reached end of 10 rounds without sudden knockout
+              evaluateFinalWinnerByScore();
+            }
+          }
+        }, 1200);
+
+      } else {
+        // Wrong Answer Penalty (Minor rope slip)
+        sound.playWrong();
+        if (playerNum === 1) {
+          p1Feedback.textContent = "Prompt Kurang Optimal (-0 pts)";
+          p1Feedback.className = "text-xs font-mono px-2 py-1 rounded bg-rose-950 text-rose-300 border border-rose-800";
+          buttonElement.classList.add('border-rose-600', 'bg-rose-950/40', 'opacity-60');
+          buttonElement.disabled = true;
+        } else {
+          p2Feedback.textContent = "Prompt Kurang Optimal (-0 pts)";
+          p2Feedback.className = "text-xs font-mono px-2 py-1 rounded bg-rose-950 text-rose-300 border border-rose-800";
+          buttonElement.classList.add('border-rose-600', 'bg-rose-950/40', 'opacity-60');
+          buttonElement.disabled = true;
+        }
+      }
+    }
+
+    // --- TRIGGER VICTORY SCREEN ---
+    function triggerVictory(winnerName, sideColor, customMessage) {
+      sound.playFanfare();
+
+      // Launch Confetti
+      try {
+        confetti({
+          particleCount: 130,
+          spread: 85,
+          origin: { y: 0.6 }
+        });
+      } catch (e) {
+        // Fallback gracefully
+      }
+
+      winnerTitle.textContent = `${winnerName} MENANG TELAK!`;
+      if (sideColor === 'blue') {
+        winnerTitle.className = "text-2xl font-black mb-1 text-blue-400";
+        winnerCrown.className = "w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl shadow-xl bg-blue-600 text-white";
+        winnerSubtitle.textContent = customMessage || `Tim Biru menunjukkan dominasi teknik Few-Shot & Prompt Optimization dengan skor ${p1Score} pts!`;
+      } else if (sideColor === 'amber') {
+        winnerTitle.className = "text-2xl font-black mb-1 text-amber-400";
+        winnerCrown.className = "w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl shadow-xl bg-amber-600 text-white";
+        winnerSubtitle.textContent = customMessage || `Tim Jingga menaklukkan tantangan dengan strategi delimitation & grounding terbaik dengan skor ${p2Score} pts!`;
+      } else {
+        winnerTitle.textContent = "HASIL IMBANG: KEDUA TIM SAMA KUAT!";
+        winnerTitle.className = "text-2xl font-black mb-1 text-purple-400";
+        winnerCrown.className = "w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl shadow-xl bg-purple-600 text-white";
+        winnerSubtitle.textContent = `Kedua tim sama-sama menguasai 10 pilar kompetensi Gemini for Educators dengan skor seimbang!`;
+      }
+
+      victoryModal.classList.remove('hidden');
+    }
+
+    // --- EVALUATE FINAL WINNER BY SCORE AFTER 10 ROUNDS ---
+    function evaluateFinalWinnerByScore() {
+      if (ropePosition < 0 || p1Score > p2Score) {
+        triggerVictory('TIM BIRU (Prompt Craft)', 'blue', `Setelah 10 ronde tuntas, Tim Biru unggul memimpin tarikan tali dengan total skor ${p1Score} pts vs ${p2Score} pts!`);
+      } else if (ropePosition > 0 || p2Score > p1Score) {
+        triggerVictory('TIM JINGGA (Zero-Shot Slayer)', 'amber', `Setelah 10 ronde tuntas, Tim Jingga unggul memimpin tarikan tali dengan total skor ${p2Score} pts vs ${p1Score} pts!`);
+      } else {
+        triggerVictory('HASIL SERI', 'draw', `Pertandingan 10 ronde selesai dengan kedudukan imbang ${p1Score} pts!`);
+      }
+    }
+
+    // --- KEYBOARD CONTROLS FOR FAST DUAL BATTLE ---
+    window.addEventListener('keydown', (e) => {
+      // Avoid hotkeys when typing in API modal
+      if (!apiConfigModal.classList.contains('hidden')) return;
+
+      const key = e.key.toLowerCase();
+
+      // Player 1 Keys: 1, 2, 3 or A, S, D
+      if (['1', '2', '3'].includes(key)) {
+        const btn = p1OptionsContainer.querySelector(`button[data-key="${key}"]`);
+        if (btn && !btn.disabled) btn.click();
+      } else if (key === 'a') {
+        const btn = p1OptionsContainer.children[0];
+        if (btn && !btn.disabled) btn.click();
+      } else if (key === 's') {
+        const btn = p1OptionsContainer.children[1];
+        if (btn && !btn.disabled) btn.click();
+      } else if (key === 'd') {
+        const btn = p1OptionsContainer.children[2];
+        if (btn && !btn.disabled) btn.click();
+      }
+
+      // Player 2 Keys: 8, 9, 0 or J, K, L
+      if (['8', '9', '0'].includes(key)) {
+        const btn = p2OptionsContainer.querySelector(`button[data-key="${key}"]`);
+        if (btn && !btn.disabled) btn.click();
+      } else if (key === 'j') {
+        const btn = p2OptionsContainer.children[0];
+        if (btn && !btn.disabled) btn.click();
+      } else if (key === 'k') {
+        const btn = p2OptionsContainer.children[1];
+        if (btn && !btn.disabled) btn.click();
+      } else if (key === 'l') {
+        const btn = p2OptionsContainer.children[2];
+        if (btn && !btn.disabled) btn.click();
+      }
+    });
+
+    // --- RESET GAME ---
+    function resetGame() {
+      ropePosition = 0;
+      p1Score = 0;
+      p2Score = 0;
+      currentRoundIndex = 0;
+      victoryModal.classList.add('hidden');
+      updateRopeUI();
+      loadRound(currentRoundIndex);
+    }
+
+    resetGameBtn.onclick = resetGame;
+    modalPlayAgainBtn.onclick = resetGame;
+
+    // --- SOUND TOGGLE ---
+    soundToggleBtn.onclick = () => {
+      sound.muted = !sound.muted;
+      if (sound.muted) {
+        soundIcon.className = "fa-solid fa-volume-xmark text-rose-400";
+      } else {
+        soundIcon.className = "fa-solid fa-volume-high text-slate-300";
+        sound.init();
+      }
+    };
+
+    // --- MODE TOGGLE & API MODAL ---
+    modeToggleBtn.onclick = () => {
+      if (activeMode === 'quiz') {
+        apiConfigModal.classList.remove('hidden');
+        if (geminiApiKey) geminiApiKeyInput.value = geminiApiKey;
+      } else {
+        activeMode = 'quiz';
+        modeNameDisplay.textContent = "Fast Quiz Duel";
+      }
+    };
+
+    closeApiModalBtn.onclick = () => {
+      apiConfigModal.classList.add('hidden');
+    };
+
+    saveApiKeyBtn.onclick = () => {
+      const val = geminiApiKeyInput.value.trim();
+      if (val) {
+        geminiApiKey = val;
+        localStorage.setItem('gemini_icebreaker_key', val);
+        activeMode = 'api';
+        modeNameDisplay.textContent = "Live Gemini API Arena";
+      }
+      apiConfigModal.classList.add('hidden');
+    };
+
+    // --- INITIALIZE GAME ON LOAD ---
+    window.onload = () => {
+      updateRopeUI();
+      loadRound(currentRoundIndex);
+    };
+  </script>
+</body>
+</html>
